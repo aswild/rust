@@ -51,6 +51,7 @@ pub mod assert_module_sources;
 pub mod back;
 pub mod base;
 pub mod codegen_attrs;
+pub mod command_script;
 pub mod common;
 pub mod debuginfo;
 pub mod errors;
