@@ -58,6 +58,7 @@ use super::linker::{self, Linker};
 use super::metadata::{MetadataPosition, create_wrapper_file};
 use super::rpath::{self, RPathConfig};
 use super::{apple, versioned_llvm_target};
+use crate::command_script::{CommandScript, EnvMode};
 use crate::{
     CodegenResults, CompiledModule, CrateInfo, NativeLib, errors, looks_like_rust_object_file,
 };
@@ -195,7 +196,7 @@ pub fn link_binary(
     // Remove the temporary object file and metadata if we aren't saving temps.
     sess.time("link_binary_remove_temps", || {
         // If the user requests that temporaries are saved, don't delete any.
-        if sess.opts.cg.save_temps {
+        if sess.opts.cg.save_temps || sess.opts.unstable_opts.link_cmd_script {
             return;
         }
 
@@ -722,6 +723,12 @@ fn link_natively(
         }
     }
 
+    if sess.opts.unstable_opts.link_cmd_script {
+        if let Err(e) = write_link_cmd_script(&cmd, out_filename) {
+            warn!("Failed to write link cmd script: {e}");
+        }
+    }
+
     // May have not found libraries in the right formats.
     sess.dcx().abort_if_errors();
 
@@ -1074,6 +1081,36 @@ fn link_natively(
         ab.add_file(temp_filename);
         ab.build(out_filename);
     }
+}
+
+fn write_link_cmd_script(cmd: &Command, out_filename: &Path) -> io::Result<()> {
+    let mut script_filename = out_filename.file_name().map(ToOwned::to_owned).ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!(
+                "unable to write link cmd script: out filename '{}' has no filename component",
+                out_filename.display()
+            ),
+        )
+    })?;
+
+    script_filename.push(".link-cmd.sh");
+    let script_path = out_filename.with_file_name(script_filename);
+    info!("Writing linker command script {}", script_path.display());
+
+    let mut open_opts = OpenOptions::new();
+    open_opts.write(true).create(true).truncate(true);
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::OpenOptionsExt;
+        open_opts.mode(0o755);
+    }
+
+    let mut writer = BufWriter::new(open_opts.open(&script_path)?);
+    CommandScript::default()
+        .change_dir(EnvMode::ExplicitOnly)
+        .include_envs(EnvMode::ExplicitOnly)
+        .output(&cmd.command(), &mut writer)
 }
 
 fn strip_with_external_utility(sess: &Session, util: &str, out_filename: &Path, options: &[&str]) {

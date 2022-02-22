@@ -2326,6 +2326,8 @@ options! {
          Multiple options can be combined with commas."),
     layout_seed: Option<u64> = (None, parse_opt_number, [TRACKED],
         "seed layout randomization"),
+    link_cmd_script: bool = (false, parse_bool, [UNTRACKED],
+        "save the linker invocation in a shell script (default: no"),
     link_directives: bool = (true, parse_bool, [TRACKED],
         "honor #[link] directives in the compiled crate (default: yes)"),
     link_native_libraries: bool = (true, parse_bool, [UNTRACKED],
