@@ -3,6 +3,7 @@ use flate2::{read::GzDecoder, write::GzEncoder};
 use rayon::prelude::*;
 use std::{fmt, io::Read, io::Write, path::Path, str::FromStr};
 use xz2::{read::XzDecoder, write::XzEncoder};
+use zstd::stream::{read::Decoder as ZstdDecoder, write::Encoder as ZstdEncoder};
 
 #[derive(Default, Debug, Copy, Clone)]
 pub enum CompressionProfile {
@@ -42,6 +43,7 @@ impl fmt::Display for CompressionProfile {
 pub enum CompressionFormat {
     Gz,
     Xz,
+    Zstd,
 }
 
 impl CompressionFormat {
@@ -49,6 +51,7 @@ impl CompressionFormat {
         match path.as_ref().extension().and_then(|e| e.to_str()) {
             Some("gz") => Some(CompressionFormat::Gz),
             Some("xz") => Some(CompressionFormat::Xz),
+            Some("zst") => Some(CompressionFormat::Zstd),
             _ => None,
         }
     }
@@ -57,6 +60,7 @@ impl CompressionFormat {
         match self {
             CompressionFormat::Gz => "gz",
             CompressionFormat::Xz => "xz",
+            CompressionFormat::Zstd => "zst",
         }
     }
 
@@ -109,6 +113,18 @@ impl CompressionFormat {
                 let compressor = XzEncoder::new_stream(std::io::BufWriter::new(file), encoder);
                 Box::new(compressor)
             }
+            CompressionFormat::Zstd => {
+                // zstd's default compression level is 3, which is on par with gzip but much faster
+                let mut enc =
+                    ZstdEncoder::new(file, 3).context("failed to initialize zstd encoder")?;
+                // Long-distance matching provides a substantial benefit for our tarballs, and
+                // actually makes compressiong *faster*.
+                enc.long_distance_matching(true).context("zst long_distance_matching")?;
+                // Enable multithreaded mode. zstd seems to be faster when using the number of
+                // physical CPU cores rather than logical/SMT threads.
+                enc.multithread(num_cpus::get_physical() as u32).context("zst multithreaded")?;
+                Box::new(enc)
+            }
         })
     }
 
@@ -117,6 +133,7 @@ impl CompressionFormat {
         Ok(match self {
             CompressionFormat::Gz => Box::new(GzDecoder::new(file)),
             CompressionFormat::Xz => Box::new(XzDecoder::new(file)),
+            CompressionFormat::Zstd => Box::new(ZstdDecoder::new(file)?),
         })
     }
 }
@@ -134,6 +151,7 @@ impl TryFrom<&'_ str> for CompressionFormats {
             match format.trim() {
                 "gz" => parsed.push(CompressionFormat::Gz),
                 "xz" => parsed.push(CompressionFormat::Xz),
+                "zst" => parsed.push(CompressionFormat::Zstd),
                 other => anyhow::bail!("unknown compression format: {}", other),
             }
         }
@@ -159,6 +177,7 @@ impl fmt::Display for CompressionFormats {
                 match format {
                     CompressionFormat::Xz => "xz",
                     CompressionFormat::Gz => "gz",
+                    CompressionFormat::Zstd => "zst",
                 },
                 f,
             )?;
@@ -177,6 +196,10 @@ impl CompressionFormats {
     pub(crate) fn iter(&self) -> impl Iterator<Item = CompressionFormat> + '_ {
         self.0.iter().copied()
     }
+
+    pub(crate) fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 pub(crate) trait Encoder: Send + Write {
@@ -193,6 +216,13 @@ impl<W: Send + Write> Encoder for GzEncoder<W> {
 impl<W: Send + Write> Encoder for XzEncoder<W> {
     fn finish(self: Box<Self>) -> Result<(), Error> {
         XzEncoder::finish(*self).context("failed to finish .xz file")?;
+        Ok(())
+    }
+}
+
+impl<W: Send + Write> Encoder for ZstdEncoder<'_, W> {
+    fn finish(mut self: Box<Self>) -> Result<(), Error> {
+        ZstdEncoder::do_finish(self.as_mut()).context("failed to finish .zst file")?;
         Ok(())
     }
 }
