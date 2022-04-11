@@ -17,7 +17,7 @@ use crate::compile;
 use crate::config::TargetSelection;
 use crate::dist;
 use crate::doc;
-use crate::flags::{Color, Subcommand};
+use crate::flags::{Color, Subcommand, SubcommandKind};
 use crate::install;
 use crate::native;
 use crate::run;
@@ -619,14 +619,14 @@ impl<'a> Builder<'a> {
         }
     }
 
-    pub fn get_help(build: &Build, subcommand: &str) -> Option<String> {
+    pub fn get_help(build: &Build, subcommand: SubcommandKind) -> Option<String> {
         let kind = match subcommand {
-            "build" | "b" => Kind::Build,
-            "doc" | "d" => Kind::Doc,
-            "test" | "t" => Kind::Test,
-            "bench" => Kind::Bench,
-            "dist" => Kind::Dist,
-            "install" => Kind::Install,
+            SubcommandKind::Build => Kind::Build,
+            SubcommandKind::Doc => Kind::Doc,
+            SubcommandKind::Test => Kind::Test,
+            SubcommandKind::Bench => Kind::Bench,
+            SubcommandKind::Dist => Kind::Dist,
+            SubcommandKind::Install => Kind::Install,
             _ => return None,
         };
 
