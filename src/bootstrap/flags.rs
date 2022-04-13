@@ -137,7 +137,7 @@ impl SubcommandKind {
             Self::Check => "check",
             Self::Clippy => "clippy",
             Self::Fix => "fix",
-            Self::Format => "format",
+            Self::Format => "fmt",
             Self::Test => "test",
             Self::Bench => "bench",
             Self::Doc => "doc",
@@ -609,6 +609,7 @@ To learn more about a subcommand, run `./x.py <subcommand> -h`",
                 let maybe_rules_help = Builder::get_help(&build, subcommand);
                 extra_help.push_str(maybe_rules_help.unwrap_or_default().as_str());
             } else if !matches!(subcommand, SubcommandKind::Clean | SubcommandKind::Format) {
+                // FIXME
                 t!(write!(
                     extra_help,
                     "Run `./x.py {} -h -v` to see a list of available paths.",

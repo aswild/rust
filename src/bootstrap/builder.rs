@@ -622,11 +622,15 @@ impl<'a> Builder<'a> {
     pub fn get_help(build: &Build, subcommand: SubcommandKind) -> Option<String> {
         let kind = match subcommand {
             SubcommandKind::Build => Kind::Build,
-            SubcommandKind::Doc => Kind::Doc,
+            SubcommandKind::Check => Kind::Check,
+            SubcommandKind::Clippy => Kind::Clippy,
+            SubcommandKind::Fix => Kind::Fix,
             SubcommandKind::Test => Kind::Test,
             SubcommandKind::Bench => Kind::Bench,
+            SubcommandKind::Doc => Kind::Doc,
             SubcommandKind::Dist => Kind::Dist,
             SubcommandKind::Install => Kind::Install,
+            SubcommandKind::Run => Kind::Run,
             _ => return None,
         };
 
