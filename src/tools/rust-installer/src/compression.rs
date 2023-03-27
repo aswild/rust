@@ -121,9 +121,18 @@ impl CompressionFormat {
                 Box::new(compressor)
             }
             CompressionFormat::Zstd => {
-                // zstd's default compression level is 3, which is on par with gzip but much faster
+                // zstd's default compression level is 3, which is on par with gzip but much
+                // faster. Level 19 is the best compression that doesn't need "a lot more memory"
+                let level = match profile {
+                    CompressionProfile::NoOp => panic!(
+                        "compression profile 'no-op' should not call `CompressionFormat::encode`."
+                    ),
+                    CompressionProfile::Fast => 1,
+                    CompressionProfile::Balanced => 3,
+                    CompressionProfile::Best => 19,
+                };
                 let mut enc =
-                    ZstdEncoder::new(file, 3).context("failed to initialize zstd encoder")?;
+                    ZstdEncoder::new(file, level).context("failed to initialize zstd encoder")?;
                 // Long-distance matching provides a substantial benefit for our tarballs, and
                 // actually makes compressiong *faster*.
                 enc.long_distance_matching(true).context("zst long_distance_matching")?;
