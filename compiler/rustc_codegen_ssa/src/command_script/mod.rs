@@ -6,6 +6,8 @@ use std::process::Command;
 
 mod quote;
 use quote::ShellQuote;
+#[cfg(test)]
+mod tests;
 
 const SCRIPT_HEADER: &str = "\
 #!/bin/bash
