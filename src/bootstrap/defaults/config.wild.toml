@@ -46,12 +46,6 @@ changelog-seen = 2
 # Defaults to "if-available" when `channel = "dev"` and "false" otherwise.
 download-ci-llvm = false
 
-# Indicates whether LLVM rebuild should be skipped when running bootstrap. If
-# this is `false` then the compiler's LLVM will be rebuilt whenever the built
-# version doesn't have the correct hash. If it is `true` then LLVM will never
-# be rebuilt. The default value is `false`.
-#skip-rebuild = false
-
 # Indicates whether the LLVM build is a Release or Debug build
 #optimize = true
 
@@ -80,11 +74,6 @@ download-ci-llvm = false
 #ccache = false
 # or alternatively ...
 #ccache = "/path/to/ccache"
-
-# If an external LLVM root is specified, we automatically check the version by
-# default to make sure it's within the range that we're expecting, but setting
-# this flag will indicate that this version check should not be done.
-#version-check = true
 
 # When true, link libstdc++ statically into the rustc_llvm.
 # This is useful if you don't want to use the dynamic version of that
@@ -159,6 +148,9 @@ experimental-targets = ""
 # Whether to build the clang compiler.
 #clang = false
 
+# Whether to enable llvm compilation warnings.
+#enable-warnings = false
+
 # Custom CMake defines to set when building LLVM.
 #build-config = {}
 
@@ -166,6 +158,7 @@ experimental-targets = ""
 # General build configuration options
 # =============================================================================
 [build]
+
 # The default stage to use for the `check` subcommand
 #check-stage = 0
 
@@ -235,6 +228,9 @@ docs = false
 # docs are generated. JSON is always minified, because it's enormous,
 # and generated in already-minified form from the beginning.
 #docs-minification = true
+
+# Flag to specify whether private items should be included in the library docs.
+library-docs-private-items = true
 
 # Indicate whether the compiler should be documented in addition to the standard
 # library and facade crates.
@@ -650,8 +646,16 @@ jemalloc = true
 
 # Select LTO mode that will be used for compiling rustc. By default, thin local LTO
 # (LTO within a single crate) is used (like for any Rust crate). You can also select
-# "thin" or "fat" to apply Thin/Fat LTO to the `rustc_driver` dylib.
+# "thin" or "fat" to apply Thin/Fat LTO to the `rustc_driver` dylib, or "off" to disable
+# LTO entirely.
 lto = "thin"
+
+# Build compiler with the optimization enabled and -Zvalidate-mir, currently only for `std`
+#validate-mir-opts = 3
+
+# Copy the linker, DLLs, and various libraries from MinGW into the rustc toolchain.
+# Only applies when the host or target is pc-windows-gnu.
+#include-mingw-linker = true
 
 # =============================================================================
 # Options for specific targets
