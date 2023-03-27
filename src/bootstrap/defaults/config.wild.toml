@@ -818,3 +818,9 @@ src-tarball = false
 #
 # This list must be non-empty.
 compression-formats = ["zst"]
+
+# How much time should be spent compressing the tarballs. The better the
+# compression profile, the longer compression will take.
+#
+# Available options: fast, balanced, best
+compression-profile = "balanced"
