@@ -43,7 +43,7 @@ changelog-seen = 2
 # Note that many of the LLVM options are not currently supported for
 # downloading. Currently only the "assertions" option can be toggled.
 #download-ci-llvm = if rust.channel == "dev" { "if-available" } else { false }
-download-ci-llvm = false
+download-ci-llvm = true
 
 # Indicates whether the LLVM build is a Release or Debug build
 #optimize = true
@@ -90,14 +90,14 @@ download-ci-llvm = false
 #
 # To add support for new targets, see https://rustc-dev-guide.rust-lang.org/building/new-target.html.
 #targets = "AArch64;ARM;BPF;Hexagon;LoongArch;MSP430;Mips;NVPTX;PowerPC;RISCV;Sparc;SystemZ;WebAssembly;X86"
-targets = "AArch64;X86"
+#targets = "AArch64;X86"
 
 # LLVM experimental targets to build support for. These targets are specified in
 # the same format as above, but since these targets are experimental, they are
 # not built by default and the experimental Rust compilation targets that depend
 # on them will not work unless the user opts in to building them.
 #experimental-targets = "AVR;M68k"
-experimental-targets = ""
+#experimental-targets = ""
 
 # Cap the number of parallel linker invocations when compiling LLVM.
 # This can be useful when building LLVM with debug info, which significantly
@@ -405,10 +405,20 @@ sysconfdir = "etc"
 # =============================================================================
 [rust]
 
-# Whether or not to optimize the compiler and standard library.
+# Whether or not to optimize when compiling the compiler and standard library,
+# and what level of optimization to use.
 # WARNING: Building with optimize = false is NOT SUPPORTED. Due to bootstrapping,
 # building without optimizations takes much longer than optimizing. Further, some platforms
 # fail to build without this optimization (c.f. #65352).
+# The valid options are:
+# true - Enable optimizations.
+# false - Disable optimizations.
+# 0 - Disable optimizations.
+# 1 - Basic optimizations.
+# 2 - Some optimizations.
+# 3 - All optimizations.
+# "s" - Optimize for binary size.
+# "z" - Optimize for binary size, but also turn off loop vectorization.
 #optimize = true
 
 # Indicates that the build should be configured for debugging Rust. A
@@ -685,10 +695,6 @@ lto = "thin"
 # Build compiler with the optimization enabled and -Zvalidate-mir, currently only for `std`
 #validate-mir-opts = 3
 
-# Copy the linker, DLLs, and various libraries from MinGW into the rustc toolchain.
-# Only applies when the host or target is pc-windows-gnu.
-#include-mingw-linker = true
-
 # =============================================================================
 # Options for specific targets
 #
@@ -762,7 +768,7 @@ linker = "gcc"
 # This option will override the same option under [build] section.
 #profiler = build.profiler (bool)
 
-# This option supports enable `rpath` in each target independently, 
+# This option supports enable `rpath` in each target independently,
 # and will override the same option under [rust] section. It only works on Unix platforms
 #rpath = rust.rpath (bool)
 
@@ -864,3 +870,7 @@ compression-formats = ["zst"]
 #
 # Available options: fast, balanced, best
 compression-profile = "balanced"
+
+# Copy the linker, DLLs, and various libraries from MinGW into the rustc toolchain.
+# Only applies when the host or target is pc-windows-gnu.
+#include-mingw-linker = true
