@@ -29,6 +29,7 @@ pub enum Profile {
     Library,
     Tools,
     Dist,
+    Wild,
     None,
 }
 
@@ -56,7 +57,7 @@ impl Profile {
     pub fn all() -> impl Iterator<Item = Self> {
         use Profile::*;
         // N.B. these are ordered by how they are displayed, not alphabetically
-        [Library, Compiler, Tools, Dist, None].iter().copied()
+        [Library, Compiler, Tools, Dist, Wild, None].iter().copied()
     }
 
     pub fn purpose(&self) -> String {
@@ -66,6 +67,7 @@ impl Profile {
             Compiler => "Contribute to the compiler itself",
             Tools => "Contribute to tools which depend on the compiler, but do not modify it directly (e.g. rustdoc, clippy, miri)",
             Dist => "Install Rust from source",
+            Wild => "aswild settings",
             None => "Do not modify `config.toml`"
         }
         .to_string()
@@ -85,6 +87,7 @@ impl Profile {
             Profile::Library => "library",
             Profile::Tools => "tools",
             Profile::Dist => "dist",
+            Profile::Wild => "wild",
             Profile::None => "none",
         }
     }
@@ -101,6 +104,7 @@ impl FromStr for Profile {
             "tools" | "tool" | "rustdoc" | "clippy" | "miri" | "rustfmt" | "rls" => {
                 Ok(Profile::Tools)
             }
+            "wild" => Ok(Profile::Wild),
             "none" => Ok(Profile::None),
             "llvm" | "codegen" => Err("the \"llvm\" and \"codegen\" profiles have been removed,\
                 use \"compiler\" instead which has the same functionality"
@@ -195,6 +199,7 @@ pub fn setup(config: &Config, profile: Profile) {
         ],
         Profile::Library => &["check", "build", "test library/std", "doc"],
         Profile::Dist => &["dist", "build"],
+        Profile::Wild => &["build", "dist", "install"],
     };
 
     println!();
