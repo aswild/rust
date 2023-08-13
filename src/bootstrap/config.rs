@@ -611,7 +611,21 @@ impl Merge for TomlConfig {
         do_merge(&mut self.llvm, llvm, replace);
         do_merge(&mut self.rust, rust, replace);
         do_merge(&mut self.dist, dist, replace);
-        assert!(target.is_none(), "merging target-specific config is not currently supported");
+        do_merge(&mut self.target, target, replace);
+    }
+}
+
+impl Merge for HashMap<String, TomlTarget> {
+    fn merge(&mut self, other: Self, replace: ReplaceOpt) {
+        // Move all new targets from other into self, and merge any target configs present in both
+        // self and other.
+        for (target_name, other_target) in other {
+            if let Some(target) = self.get_mut(&target_name) {
+                target.merge(other_target, replace);
+            } else {
+                self.insert(target_name, other_target);
+            }
+        }
     }
 }
 

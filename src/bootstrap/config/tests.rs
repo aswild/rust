@@ -1,4 +1,4 @@
-use crate::config::TomlConfig;
+use crate::config::{TargetSelection, TomlConfig};
 
 use super::{Config, Flags};
 use clap::CommandFactory;
@@ -147,6 +147,65 @@ build-config = {}
         [("foo".to_string(), "bar".to_string())].into_iter().collect(),
         "setting dictionary value"
     );
+}
+
+#[test]
+fn merge_target_toml() {
+    let top_toml = r#"
+changelog-seen = 0
+profile = "profile"
+
+[build]
+target = ["x86_64-unknown-linux-gnu", "x86_64-unknown-linux-musl", "aarch64-unknown-linux-gnu"]
+
+# merge a section
+[target.x86_64-unknown-linux-gnu]
+# override key
+cc = "foo-gcc"
+# new key
+ar = "pirate-arr"
+
+# secton only in top-level
+[target.aarch64-unknown-linux-gnu]
+cc = "aarch64-linux-gnu-gcc"
+
+    "#;
+
+    let profile_toml = r#"
+# section to merge
+[target.x86_64-unknown-linux-gnu]
+cc = "gcc"
+cxx = "g++"
+
+# section only in baseline profile
+[target.x86_64-unknown-linux-musl]
+cc = "musl-gcc"
+cxx = "g++"
+    "#;
+
+    let config = Config::parse_inner(&["check".to_owned()], |path| {
+        toml::from_str(match path.file_name().unwrap().to_str().unwrap() {
+            "config.toml" => top_toml,
+            "config.profile.toml" => profile_toml,
+            other => panic!("unexpected toml path {other:?}"),
+        })
+        .unwrap()
+    });
+
+    let x86_gnu =
+        config.target_config.get(&TargetSelection::from_user("x86_64-unknown-linux-gnu")).unwrap();
+    assert_eq!(x86_gnu.cc, Some("foo-gcc".into()), "top-level override value");
+    assert_eq!(x86_gnu.cxx, Some("g++".into()), "included only value");
+    assert_eq!(x86_gnu.ar, Some("pirate-arr".into()), "top-level only value");
+
+    let x86_musl =
+        config.target_config.get(&TargetSelection::from_user("x86_64-unknown-linux-musl")).unwrap();
+    assert_eq!(x86_musl.cc, Some("musl-gcc".into()), "baseline only section");
+    assert_eq!(x86_musl.cxx, Some("g++".into()), "baseline only section");
+
+    let arm64 =
+        config.target_config.get(&TargetSelection::from_user("aarch64-unknown-linux-gnu")).unwrap();
+    assert_eq!(arm64.cc, Some("aarch64-linux-gnu-gcc".into()), "top-level only section");
 }
 
 #[test]
